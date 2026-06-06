@@ -1,0 +1,62 @@
+name: Fetch Student Data
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'   # ← change interval: '*/15'=15min, '*/30'=30min, '0 * * * *'=1hr
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  fetch-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Fetch APIs and save data
+        env:
+          API_URL_1: ${{ secrets.API_URL_1 }}
+          API_URL_2: ${{ secrets.API_URL_2 }}
+        run: python fetch_data.py
+
+      - name: Commit updated history to repo
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/history.json
+          git diff --cached --quiet || git commit -m "chore: update student data [$(date -u '+%Y-%m-%d %H:%M UTC')]"
+          git push
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
