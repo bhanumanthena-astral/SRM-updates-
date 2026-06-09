@@ -1,10 +1,6 @@
 name: Fetch Student Data
 
 on:
-  schedule:
-    - cron: '*/15 * * * *' 
-    - cron: '7-59/15 * * * *'   # offset by 7 min
-    - cron: '3-59/15 * * * *'   # offset by 3 min
   workflow_dispatch:
 
 permissions:
